@@ -1,0 +1,826 @@
+/*------------------------------------------------------------------------------------------------------/
+| Program : INCLUDES_CUSTOM.js
+| Event   : N/A
+|
+| Usage   : Custom Script Include.  Insert custom EMSE Function below and they will be 
+|	    available to all master scripts
+|
+| Notes   :
+|
+/------------------------------------------------------------------------------------------------------*/
+
+// Originally created by Roland VonSchoech, Accela, for Fort Wayne 
+// Custom function to add a condition if active permit on same parcel already exists
+// Added by Jonathan Fox on 1/5/2011 and significantly modified to remove a check 
+// for age of previous permits and change address lookup to parcel lookup.
+//************************************************************************************
+function addConditionToCapsWithMatchingParcel() {
+    logDebug("function: BEGIN function addConditionToCapsWithMatchingParcel");
+    logDebug("function: Get Parcel on CAP");
+    
+	var capParcelResult = aa.parcel.getParcelandAttribute(capId,null);
+	if (capParcelResult.getSuccess())
+		{ var Parcels = capParcelResult.getOutput().toArray(); }
+	else	
+		{ logDebug("**ERROR: getting parcels by cap ID: " + capParcelResult.getErrorMessage()); return false; }
+
+	for (zz in Parcels)
+		{
+		var ParcelValidatedNumber = Parcels[zz].getParcelNumber();
+		
+			logDebug("Looking at parcel " + ParcelValidatedNumber);
+			
+			logDebug("function: Get CAPs by Parcel");
+			capResult = aa.cap.getCapListByParcelID(ParcelValidatedNumber,null);
+			if (capResult.getSuccess()) {
+			    addrCaps = capResult.getOutput();
+
+			    for (addrCap in addrCaps) {
+				logDebug("Found CAP " + addrCaps[addrCap].getCustomID() + " with matching address.  Checking CAP Type...")
+				capResult2 = aa.cap.getCap(addrCaps[addrCap].getID1(), addrCaps[addrCap].getID2(), addrCaps[addrCap].getID3());
+				if (capResult2.getSuccess()) {
+				    cap2 = capResult2.getOutput();
+				    logDebug("Cap Type is " + cap2.getCapType().toString());
+				    logDebug("Cap Status is " + cap2.getCapStatus() + "");
+
+				    //RV  - 02/01/2010 - Make sure the AltID is not the one that was just added
+				    if (addrCaps[addrCap].getCustomID().toString().equals(capIDString)) {
+					logDebug("Permit # in result matches the permit # just created, ignore this permit and continue");
+				    }
+				    else {
+					if (cap2.getCapType().toString().equals(appTypeString) && !matches(cap2.getCapStatus() + "", "NULL", "Abatement Complete", "Applicant Request", "Application Canceled", "C of Completion Issued", "C of O Issued","COED","Closed", "Closed Out", "Complete", "Compliant", "Dismissed", "Exemption","Expired","External Referral", "Final Approval", "Final Approved", "Final Plat Recorded", "Final Review", "Finaled", "In Compliance", "Not Required", "Plat Book Page Recorded","SUSPEND","Temp C of O Issued", "Void", "Voided", "Withdrawn")) {
+					    logDebug("Found matching cap type with valid status, adding condition.");
+					    addStdCondition("CC PERMIT", "Open Record at Same Address");
+					    break;  //exit for loop
+					}
+				    }
+				}
+				else {
+				    logDebug("function: Error calling getCAP to convert to CapScriptModel object: " + capResult2.getError());
+				}
+			    } // End CAP FOR loop
+			}
+			else {
+			    logDebug("function: Error getting CAPs with matching parcel: " + capResult.getErrorMessage());
+			}
+	} // End parcel FOR loop
+
+    logDebug("function: END function addConditionToCapsWithMatchingParcel");
+}
+
+
+
+function addConditionToCapsWithMatchingParcelACA() {
+	logDebug("function: BEGIN function addConditionToCapsWithMatchingParcel");
+	logDebug("function: Get Parcel on CAP");
+
+	var capParcelResult = aa.parcel.getParcelandAttribute(capId, null);
+	if (capParcelResult.getSuccess()) { var Parcels = capParcelResult.getOutput().toArray(); }
+	else { logDebug("**ERROR: getting parcels by cap ID: " + capParcelResult.getErrorMessage()); return false; }
+
+	for (zz in Parcels) {
+		var ParcelValidatedNumber = Parcels[zz].getParcelNumber();
+
+		logDebug("Looking at parcel " + ParcelValidatedNumber);
+
+		logDebug("function: Get CAPs by Parcel");
+		capResult = aa.cap.getCapListByParcelID(ParcelValidatedNumber, null);
+		if (capResult.getSuccess()) {
+			addrCaps = capResult.getOutput();
+
+			for (addrCap in addrCaps) {
+				logDebug("Found CAP " + addrCaps[addrCap].getCustomID() + " with matching address.  Checking CAP Type...")
+				capResult2 = aa.cap.getCap(addrCaps[addrCap].getID1(), addrCaps[addrCap].getID2(), addrCaps[addrCap].getID3());
+				if (capResult2.getSuccess()) {
+					cap2 = capResult2.getOutput();
+					logDebug("Cap Type is " + cap2.getCapType().toString());
+					logDebug("Cap Status is " + cap2.getCapStatus() + "");
+
+					//RV  - 02/01/2010 - Make sure the AltID is not the one that was just added
+					if (addrCaps[addrCap].getCustomID().toString().equals(capIDString)) {
+						logDebug("Permit # in result matches the permit # just created, ignore this permit and continue");
+					}
+					else {
+						if (cap2.getCapType().toString().equals(appTypeString) && !matches(cap2.getCapStatus() + "", "NULL", "Abatement Complete", "Applicant Request", "Application Canceled", "C of Completion Issued", "C of O Issued", "Closed", "Closed Out", "Complete", "Compliant", "Dismissed", "Exemption", "External Referral", "Final Approval", "Final Approved", "Final Plat Recorded", "Final Review", "Finaled", "In Compliance", "Not Required", "Plat Book Page Recorded", "Temp C of O Issued", "Void", "Voided", "Withdrawn")) {
+							logDebug("Found matching cap type with valid status, adding condition.");
+							return true;
+							break;  //exit for loop
+						}
+					}
+				}
+				else {
+					logDebug("function: Error calling getCAP to convert to CapScriptModel object: " + capResult2.getError());
+					return false;
+				}
+			} // End CAP FOR loop
+		}
+		else {
+			logDebug("function: Error getting CAPs with matching parcel: " + capResult.getErrorMessage());
+			return false;	
+		}
+	} // End parcel FOR loop
+
+	logDebug("function: END function addConditionToCapsWithMatchingParcel");
+	return false;
+}
+
+
+
+function createReferenceLP(rlpId,rlpType,pContactType)
+	{
+	//Creates/updates a reference licensed prof from a Contact and then adds as an LP on the cap.
+	var updating = false;
+	var capContResult = aa.people.getCapContactByCapID(capId);
+	if (capContResult.getSuccess())
+		{ conArr = capContResult.getOutput();  }
+	else
+		{
+		logDebug ("**ERROR: getting cap contact: " + capAddResult.getErrorMessage());
+		return false;
+		}
+
+	if (!conArr.length)
+		{
+		logDebug ("**WARNING: No contact available");
+		return false;
+		}
+
+
+	var newLic = getRefLicenseProf(rlpId)
+
+	if (newLic)
+		{
+		updating = true;
+		logDebug("Updating existing Ref Lic Prof : " + rlpId);
+		}
+	else
+		var newLic = aa.licenseScript.createLicenseScriptModel();
+
+	//get contact record
+	if (pContactType==null)
+		var cont = conArr[0]; //if no contact type specified, use first contact
+	else
+		{
+		var contFound = false;
+		for (yy in conArr)
+			{
+			if (pContactType.equals(conArr[yy].getCapContactModel().getPeople().getContactType()))
+				{
+				cont = conArr[yy];
+				contFound = true;
+				break;
+				}
+			}
+		if (!contFound)
+			{
+			logDebug ("**WARNING: No Contact found of type: "+pContactType);
+			return false;
+			}
+		}
+
+	peop = cont.getPeople();
+	addr = peop.getCompactAddress();
+
+	newLic.setContactFirstName(cont.getFirstName());
+	//newLic.setContactMiddleName(cont.getMiddleName());  //method not available
+	newLic.setContactLastName(cont.getLastName());
+	newLic.setBusinessName(peop.getBusinessName());
+	newLic.setAddress1(addr.getAddressLine1());
+	newLic.setAddress2(addr.getAddressLine2());
+	newLic.setAddress3(addr.getAddressLine3());
+	newLic.setCity(addr.getCity());
+	newLic.setState(addr.getState());
+	newLic.setZip(addr.getZip());
+	newLic.setPhone1(peop.getPhone1());
+	newLic.setPhone2(peop.getPhone2());
+	newLic.setEMailAddress(peop.getEmail());
+	newLic.setFax(peop.getFax());
+
+	newLic.setAgencyCode(aa.getServiceProviderCode());
+	newLic.setAuditDate(sysDate);
+	newLic.setAuditID(currentUserID);
+	newLic.setAuditStatus("A");
+
+	if (AInfo["Insurance Co"]) 		newLic.setInsuranceCo(AInfo["Insurance Co"]);
+	if (AInfo["Insurance Amount"]) 		newLic.setInsuranceAmount(parseFloat(AInfo["Insurance Amount"]));
+	if (AInfo["Insurance Exp Date"]) 	newLic.setInsuranceExpDate(aa.date.parseDate(AInfo["Insurance Exp Date"]));
+	if (AInfo["Policy #"]) 			newLic.setPolicy(AInfo["Policy #"]);
+
+	if (AInfo["Business License #"]) 	newLic.setBusinessLicense(AInfo["Business License #"]);
+	if (AInfo["Business License Exp Date"]) newLic.setBusinessLicExpDate(aa.date.parseDate(AInfo["Business License Exp Date"]));
+
+	newLic.setLicenseType(rlpType);
+	newLic.setLicState(addr.getState());
+	newLic.setStateLicense(rlpId);
+
+	if (updating)
+		myResult = aa.licenseScript.editRefLicenseProf(newLic);
+	else
+		myResult = aa.licenseScript.createRefLicenseProf(newLic);
+
+	if (!myResult.getSuccess())
+		{
+		logDebug("**ERROR: can't create ref lic prof: " + myResult.getErrorMessage());
+		return null;
+		}
+
+	logDebug("Successfully added/updated License No. " + rlpId + ", Type: " + rlpType + " Sequence Number " + myResult.getOutput());
+
+	lpsmResult = aa.licenseScript.getRefLicenseProfBySeqNbr(servProvCode,myResult.getOutput())
+	if (!lpsmResult.getSuccess())
+		{ logDebug("**WARNING error retrieving the LP just created " + lpsmResult.getErrorMessage()) ; return null}
+
+	lpsm = lpsmResult.getOutput();
+
+	// Now add the LP to the CAP
+	
+	asCapResult= aa.licenseScript.associateLpWithCap(capId,lpsm)
+	if (!asCapResult.getSuccess())
+		{ logDebug("**WARNING error associating CAP to LP: " + asCapResult.getErrorMessage()) }
+	else
+		{ logDebug("Associated the CAP to the new LP") }
+	
+	
+	// Find the public user by contact email address and attach
+	puResult = aa.publicUser.getPublicUserByEmail(peop.getEmail())
+	if (!puResult.getSuccess())
+		{ logDebug("**WARNING finding public user via email address " + peop.getEmail() + " error: " + puResult.getErrorMessage()) }
+	else
+		{
+		pu = puResult.getOutput();
+		asResult = aa.licenseScript.associateLpWithPublicUser(pu,lpsm)
+		if (!asResult.getSuccess())
+			{logDebug("**WARNING error associating LP with Public User : " + asResult.getErrorMessage());}
+		else
+			{logDebug("Associated LP with public user " + peop.getEmail()) }
+		}
+	
+	return lpsm;
+	}
+
+function getRefLicenseProf(refstlic)
+	{
+	var refLicObj = null;
+	var refLicenseResult = aa.licenseScript.getRefLicensesProfByLicNbr(aa.getServiceProviderCode(),refstlic);
+	if (!refLicenseResult.getSuccess())
+		{ logDebug("**ERROR retrieving Ref Lic Profs : " + refLicenseResult.getErrorMessage()); return false; }
+	else
+		{
+		var newLicArray = refLicenseResult.getOutput();
+		if (!newLicArray) return null;
+		for (var thisLic in newLicArray)
+			if (refstlic && refstlic.toUpperCase().equals(newLicArray[thisLic].getStateLicense().toUpperCase()))
+				refLicObj = newLicArray[thisLic];
+		}
+
+	return refLicObj;
+	}
+function closeSubWorkflow(thisProcessID,wfStat) // optional capId
+	{
+	var itemCap = capId;
+	if (arguments.length == 3) itemCap = arguments[2]; // use cap ID specified in args
+
+
+	var isCompleted = true;
+
+	var workflowResult = aa.workflow.getTasks(itemCap);
+	if (workflowResult.getSuccess())
+		var wfObj = workflowResult.getOutput();
+	else
+		{ logMessage("**ERROR: Failed to get workflow object: " + s_capResult.getErrorMessage()); return false; }
+
+	for (i in wfObj)
+		{
+		var fTaskSM = wfObj[i];
+		
+		if ((fTaskSM.getProcessID() == thisProcessID && fTaskSM.getCompleteFlag() != "Y" && fTaskSM.getActiveFlag().equals("Y")))
+			{
+			
+			logDebug("closeSubWorkflow: found an incomplete task " + fTaskSM.getTaskDescription() + " with processID #" + thisProcessID + " , Step# " + fTaskSM.getStepNumber(),3);
+			isCompleted = false
+			}
+		}
+
+	if (!isCompleted) return false;
+
+
+	// get the parent task
+
+	var relationArray = aa.workflow.getProcessRelationByCapID(itemCap,null).getOutput()
+
+	var relRecord = null;
+
+	for (thisRel in relationArray)
+		if (relationArray[thisRel].getProcessID() == thisProcessID)
+			relRecord = relationArray[thisRel];
+
+	if (!relRecord)
+		{
+		logDebug("closeSubWorkflow: did not find a process relation, exiting",3);
+		return false;
+		}
+
+	logDebug("executing handleDisposition:" + relRecord.getStepNumber() + "," + relRecord.getParentProcessID() + "," + wfStat,3);
+
+	var handleResult = aa.workflow.handleDisposition(itemCap,relRecord.getStepNumber(),relRecord.getParentProcessID(),wfStat,sysDate,"Closed via script","Closed via script",systemUserObj ,"Y");
+
+	if (!handleResult.getSuccess())
+		logDebug("**WARNING: closing parent task: " + handleResult.getErrorMessage());
+	else
+		logDebug("Closed parent task");
+	}
+function closeParentWorkflow(thisProcessID,wfStat) // optional capId
+{
+	//modified function to close parent, ignoring opened tasks
+	var itemCap = capId;
+	if (arguments.length == 3) itemCap = arguments[2]; // use cap ID specified in args
+
+	var isCompleted = true;
+
+	var workflowResult = aa.workflow.getTasks(itemCap);
+	if (workflowResult.getSuccess())
+		var wfObj = workflowResult.getOutput();
+	else
+		{ logMessage("**ERROR: Failed to get workflow object: " + s_capResult.getErrorMessage()); return false; }
+
+	if (!isCompleted) return false;
+
+	// get the parent task
+
+	var relationArray = aa.workflow.getProcessRelationByCapID(itemCap,null).getOutput()
+
+	var relRecord = null;
+
+	for (thisRel in relationArray)
+		if (relationArray[thisRel].getProcessID() == thisProcessID)
+			relRecord = relationArray[thisRel];
+
+	if (!relRecord)
+		{
+		logDebug("closeParentWorkflow: did not find a process relation, exiting",3);
+		return false;
+		}
+
+	logDebug("executing handleDisposition:" + relRecord.getStepNumber() + "," + relRecord.getParentProcessID() + "," + wfStat,3);
+
+	var handleResult = aa.workflow.handleDisposition(itemCap,relRecord.getStepNumber(),relRecord.getParentProcessID(),wfStat,sysDate,"Closed via script","Closed via script",systemUserObj ,"Y");
+
+	if (!handleResult.getSuccess())
+		logDebug("**WARNING: closing parent task: " + handleResult.getErrorMessage());
+	else
+		logDebug("Closed parent task");
+}
+
+function DateWithinXyears(pFileDate, numYears)
+{
+// This function will check if the date passed in is within X years of today (in the past if numYears is positive).
+
+	var fileDate = new Date(pFileDate);
+
+	var compareDate = new Date();
+	compareDate.setDate( compareDate.getDate() - (365 * numYears) );
+    
+	if( fileDate >= compareDate )
+		return true;
+	else
+		return false;
+}
+function copyOwnerToContact(nContactType)
+{
+	//have to specify a temporary CAP that has an owner attached to get access to the base contact info
+	//This is the problimatic area since you have to pull the ContactModel from another CAP and cannot create
+	//a new instance of the object
+
+	//get cap contact model from existing cap
+	
+	//get owner from current cap
+	var OwnersResult = aa.owner.getOwnerByCapId(capId);
+	if (OwnersResult.getSuccess()) 
+		Owners = OwnersResult.getOutput();
+	else
+		{
+			logDebug("Error Retrieving Cap Owner");
+			return null;	
+		}
+	
+	var owner = Owners[0];
+	capContactResult = aa.people.getCapContactByCapID(capId);
+		
+	if (capContactResult.getSuccess())
+		{
+			Contacts = capContactResult.getOutput();
+			if (Contacts.length>0)
+			{
+				var theContact = Contacts[0].getCapContactModel();
+				var People = Contacts[0].getPeople();
+				var cAddress = People.getCompactAddress();
+				cAddress.setAddressId(null);
+				cAddress.setAddressLine1(owner.getMailAddress1());
+				cAddress.setAddressLine2(owner.getMailAddress2());
+				cAddress.setAddressLine3(owner.getMailAddress3());
+				cAddress.setCity(owner.getMailCity());
+				cAddress.setCountry(owner.getCountry());
+				cAddress.setState(owner.getMailState());
+				cAddress.setZip(owner.getMailZip());
+				
+				People.setBusinessName(null);
+				People.setCompactAddress(cAddress);
+				People.setContactType(nContactType);
+				//People.setContactTypeFlag("Y");
+				People.setEmail(null);
+				People.setFax(owner.getFax());
+				People.setComment(null);
+				
+				People.setPhone1(owner.getPhone());
+				People.setPhone2(null);
+							
+				theContact.setCapID(capId);
+				theContact.setCountry(owner.getCountry());
+				theContact.setEmail(null);
+				theContact.setFirstName(owner.getOwnerFirstName());
+				theContact.setLastName(owner.getOwnerLastName());
+				theContact.setFullName(owner.getOwnerFullName());
+				theContact.setPeople(People);
+				//theContact.setServiceProviderCode(aa.getServiceProviderCode());
+				
+				aa.people.createCapContact(theContact);
+			}
+			else
+			{
+				logDebug("No Contact to copy");
+				return false;
+			}
+		}
+	else
+		{
+			logDebug("Error Retrieving Cap Contact Model");
+			return null;
+		}	
+}
+function GISFloodPlain(svc,layer,distance,attrib)
+{
+//return attributes from multiple GIS Objects when a parcel crosses multiple flood zones
+var ret = "";
+var myBuff = getGISBufferInfo(svc,layer,distance,attrib);
+for(x in myBuff){
+var var1 = myBuff[x][attrib];
+if(ret =="") ret = var1; else if(ret.indexOf(var1) < 0) ret+= ","+var1;
+}
+
+return ret;
+}
+
+/*--------------------------------------------------------------------------------------------/
+|  Email Primary LP Functions (Start)
+/----------------------------------------------------------------------------------------------*/
+function emailPrimaryLP(emailSubject,emailMessage)                
+{
+                recLicProfArray = getLicenseProfessional(capId);
+
+                if (recLicProfArray != null)
+                for (recLic in recLicProfArray)
+                {
+                                var recLP = "";
+
+                                recLP = recLicProfArray[recLic];
+
+                                if (recLP.getPrintFlag()  != "Y")
+                                                continue;
+                                
+                                recLPEmail = recLP.getEmail();
+
+                                if (recLPEmail != null)
+                                                email(recLPEmail ,"noreply@charlottefl.com",emailSubject, emailMessage);
+                }
+}
+/*----------------------------------------------------------------------------------------------/
+|  Email Primary LP Functions (End)
+/----------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------/
+|  DRI Function (Start)
+/----------------------------------------------------------------------------------------------*/
+
+function isDRIexpir(capId) {
+    var capId = aa.cap.getCapID(capId);  
+    if (capId.getSuccess()) {
+        capId = capId.getOutput();
+    } else {
+        aa.print(capId.getErrorMessage());
+        aa.abortScript();
+    }
+    var capIDString = capId.getCustomID();
+
+    var capParcelResult = aa.parcel.getParcelandAttribute(capId, null);
+    var Parcels = capParcelResult.getOutput().toArray();
+    var parcelObj = Parcels[0];
+    var parcelNumber = parcelObj.getParcelNumber();
+
+    var proxType = "DRI";
+    var myProx = proximityInfo("AGIS_CHARCO", proxType, 1);
+    if (myProx != undefined && myProx != 0) {
+        if (proxType == "DRI") {
+            var myType = "Project Name";
+            var asi = getAppSpecific(myType, capId);
+            var asiCapId = aa.cap.getCapID(asi);
+            if (asiCapId.getSuccess()) {
+                var capIdASI = asiCapId.getOutput()
+                var capIDStringASI = capIdASI.getCustomID();
+                var appSpecificInfo = new Array();
+                var appSpecificInfo = aa.appSpecificInfo.getByCapID(capIdASI);
+                if (appSpecificInfo.getSuccess()) {
+                    var fAppSpecInfoObj = appSpecificInfo.getOutput();
+                    for (loopk in fAppSpecInfoObj)
+                        if (fAppSpecInfoObj[loopk].getCheckboxDesc() == "EXPIRATION DATE") {  //NOTE:  in Prod = "Expiration Date"
+                            var myDateFlag = 0
+                            var sysDate = aa.date.getCurrentDate();
+                            myDt = "";
+                            myDt = fAppSpecInfoObj[loopk].getChecklistComment()
+                            if (myDt == null) {
+                                myDt = "01/01/2050";
+                                myDateFlag = 1;
+                            }
+                            myDt = aa.date.parseDate(myDt);
+                            if (myDateFlag == 0) {
+                                var myDtMMDDYYYY = dateFormatted(myDt.getMonth(), myDt.getDayOfMonth(), myDt.getYear(), "MM/DD/YYYY");
+                            } else {
+                                var myDtMMDDYYYY = null
+                            }
+                            var filterDateMMDDYYYY = dateFormatted(sysDate.getMonth(), sysDate.getDayOfMonth(), sysDate.getYear(), "MM/DD/YYYY");
+                            myDt = convertDate(myDt);
+                            sysDate = convertDate(sysDate);
+                            if (myDt > sysDate) {
+                                return false;
+                            } else {
+                                return true;
+                            }
+                        }
+                } else {
+                    aa.print("This CAP has not been found.");
+                    aa.abortScript();
+                }
+            }
+        }
+
+    } else {
+        if (myProx == undefined) {
+            return false;
+        }
+        else {
+            return false;
+        }
+    }
+
+    function proximityInfo(svc, layer, numDistance) {
+        var distanceType = "feet"
+        if (arguments.length == 4) distanceType = arguments[3];
+        var bufferTargetResult = aa.gis.getGISType(svc, layer);
+        if (bufferTargetResult.getSuccess()) {
+            var buf = bufferTargetResult.getOutput();
+            buf.addAttributeName(layer + "_ID");
+        }
+        else { aa.print("**WARNING: Getting GIS Type for Buffer Target.  Reason is: " + bufferTargetResult.getErrorType() + ":" + bufferTargetResult.getErrorMessage()); return false }
+        var gisObjResult = aa.gis.getCapGISObjects(capId);
+        if (gisObjResult.getSuccess())
+            var fGisObj = gisObjResult.getOutput();
+        else
+        { aa.print("**WARNING: Getting GIS objects for Cap.  Reason is: " + gisObjResult.getErrorType() + ":" + gisObjResult.getErrorMessage()); return false }
+        for (a1 in fGisObj) {
+            var bufchk = aa.gis.getBufferByRadius(fGisObj[a1], numDistance, distanceType, buf);
+            if (bufchk.getSuccess())
+                var proxArr = bufchk.getOutput();
+            else
+            { aa.print("**WARNING: Retrieving Buffer Check Results.  Reason is:  missing " + layer + " / " + bufchk.getErrorType() + ":" + bufchk.getErrorMessage()); return 0 }
+            for (a2 in proxArr) {
+                var proxObj = proxArr[a2].getGISObjects();
+                for (z1 in proxObj) {
+                    var v = proxObj[z1].getAttributeValues();
+                    for (g in v) {
+                        myName = v[g]
+                    }
+                    return myName;
+                }
+
+            }
+        }
+    }
+
+}
+
+
+/*----------------------------------------------------------------------------------------------/
+|  DRI Function (End)
+/----------------------------------------------------------------------------------------------*/
+
+
+
+function lastInspEmail(myCapID, insp2Cinspheck) {
+    var myCapId = aa.cap.getCapID(myCapID);
+    var myInspType = insp2Cinspheck;
+    if (myCapId.getSuccess()) {
+        myCap = myCapId.getOutput();
+        var capIDString = myCap.getCustomID();
+        var getResult = aa.inspection.getInspections(myCap);
+        if (getResult.getSuccess()) {
+            var list = getResult.getOutput();
+            var lastInsp = "";
+            for (ei in list) {
+                var inspType = list[ei].getInspectionType();
+                var inspStatus = list[ei].getInspectionStatus();
+                var inSpector = list[ei].getInspector();
+                var inspSched = list[ei].getScheduledDate();
+                var cap2 = list[ei].getCapID();
+                var inspID = list[ei].getIdNumber();
+                if (inspSched != null) {
+                    var inspSched = dateFormatted(inspSched.getMonth(), inspSched.getDayOfMonth(), inspSched.getYear(), "MM-DD-YYYY");
+                } else {
+                    var inspSched = "N/A"
+                }
+                if (inspType == insp2Cinspheck && inspStatus != "Pending") {
+                    if (inspStatus.length) {
+                        var lastInsp = inSpector;
+                    }
+                }
+            }
+        }
+        var nameArray = new Array();
+        nameArray = String(lastInsp).split("/");
+        var inspTor2 = nameArray[6];
+        var nameArray2 = new Array();
+        nameArray2 = String(inspTor2).split(" ");
+        var firstname = nameArray2[0]; var lastname = nameArray2[1];
+        var lastInspObj = aa.person.getUser(firstname, "", lastname).getOutput();
+        var lastInspU = lastInspObj.getUserID();
+        var userEml = lastInspObj.getEmail();
+        return (userEml);
+    }
+}
+
+
+    function addAdHocTaskcLight (capId) {
+        var myCapId = capId
+        var myCap = aa.cap.getCapID(myCapId);
+        var tUser = "ADMIN"; 
+        var userObj = aa.person.getUser(tUser);
+        if (myCap.getSuccess()) {
+            myCap = myCap.getOutput();
+        } else {
+            aa.print(myCap.getErrorMessage());
+            return false;
+            aa.abortScript();
+        }
+        var capIDString = myCap.getCustomID();
+        aa.print(capIDString);
+        aa.print(myCap);
+        aa.print(tUser + " " + userObj);
+
+        var taskObj = aa.workflow.getTasks(myCap).getOutput()[0].getTaskItem()
+        taskObj.setProcessCode("ADHOC WORKFLOW");
+        taskObj.setTaskDescription("Coastal Lighting Review");
+        taskObj.setDispositionNote("");
+        taskObj.setProcessID(0);
+        taskObj.setAssignmentDate(aa.util.now());
+        taskObj.setDueDate(aa.util.now());
+        taskObj.setAssignedUser(userObj.getOutput());
+        wf = aa.proxyInvoker.newInstance("com.accela.aa.workflow.workflow.WorkflowBusiness").getOutput();
+        wf.createAdHocTaskItem(taskObj);
+        return true;
+
+   }
+
+
+function addAdHocTaskcLightACA(myCap) {
+    var tUser = "ADMIN";
+    var userObj = aa.person.getUser(tUser);
+    aa.print(myCap);
+    aa.print(tUser + " " + userObj);
+
+    var taskObj = aa.workflow.getTasks(myCap).getOutput()[0].getTaskItem()
+    taskObj.setProcessCode("ADHOC WORKFLOW");
+    taskObj.setTaskDescription("Coastal Lighting Review");
+    taskObj.setDispositionNote("");
+    taskObj.setProcessID(0);
+    taskObj.setAssignmentDate(aa.util.now());
+    taskObj.setDueDate(aa.util.now());
+    taskObj.setAssignedUser(userObj.getOutput());
+    wf = aa.proxyInvoker.newInstance("com.accela.aa.workflow.workflow.WorkflowBusiness").getOutput();
+    wf.createAdHocTaskItem(taskObj);
+    return true;
+
+}
+
+
+
+
+/*--------------------------------- 
+   NEW DRI FUNCTIONS
+----------------------------------*/
+
+function ckCapDRI(capCK) {
+	var capId = aa.cap.getCapID(capCK);  
+	if (capId.getSuccess()) {
+		capId = capId.getOutput();
+	} else {
+		aa.print(capId.getErrorMessage());  
+		aa.abortScript();
+	}
+	var capIDString = capId.getCustomID();
+
+	mycap = aa.cap.getCap(capId).getOutput();
+	var capStatus = mycap.getCapStatus();
+	var capParcelResult = aa.parcel.getParcelandAttribute(capId, null);
+	var Parcels = capParcelResult.getOutput().toArray();
+	var parcelObj = Parcels[0];
+	var parcelNumber = parcelObj.getParcelNumber();
+	
+	var myProx = proximityInfodri("AGIS_CHARCO", "DRI", 1, capId);
+	if (myProx != undefined && myProx != 0) {
+		return getDRImatch(myProx);
+		
+	} else {
+		if (myProx == undefined) {
+			return true;
+		}
+		else {
+			return true;
+		}
+	}
+}
+
+function proximityInfodri(svc, layer, numDistance, pCap) {
+	var capId = pCap;
+	var distanceType = "feet";
+	if (arguments.length == 4) distanceType = arguments[3];
+	var bufferTargetResult = aa.gis.getGISType(svc, layer);
+	if (bufferTargetResult.getSuccess()) {
+		var buf = bufferTargetResult.getOutput();
+		buf.addAttributeName(layer + "_ID");
+	}
+	else { aa.print("**WARNING: Getting GIS Type for Buffer Target.  Reason is: " + bufferTargetResult.getErrorType() + ":" + bufferTargetResult.getErrorMessage()); return false; }
+	var gisObjResult = aa.gis.getCapGISObjects(capId);
+	if (gisObjResult.getSuccess())
+		var fGisObj = gisObjResult.getOutput();
+	else { aa.print("**WARNING: Getting GIS objects for Cap.  Reason is: " + gisObjResult.getErrorType() + ":" + gisObjResult.getErrorMessage()); return false; }
+	for (a1 in fGisObj) {
+		var bufchk = aa.gis.getBufferByRadius(fGisObj[a1], numDistance, distanceType, buf);
+		if (bufchk.getSuccess())
+			var proxArr = bufchk.getOutput();
+		else { aa.print("**WARNING: Retrieving Buffer Check Results.  Reason is:  missing " + layer + " / " + bufchk.getErrorType() + ":" + bufchk.getErrorMessage()); return 0; }
+		for (a2 in proxArr) {
+			var proxObj = proxArr[a2].getGISObjects();
+			for (z1 in proxObj) {
+				var v = proxObj[z1].getAttributeValues();
+				for (g in v) {
+					myName = v[g]
+				}
+				return myName
+			}
+
+		}
+	}
+}
+
+
+function getDRImatch(DRIname) {
+
+	driResult = aa.cap.getByAppType("Planning", "Growth Mgmt", "DRI", "NA");  
+
+	var mySearchStr = DRIname.toUpperCase();
+
+	if (driResult.getSuccess()) {
+		driArray = driResult.getOutput();
+	}
+	var DRIflag = 0;
+
+	for (x in driArray) {
+		capObj = driArray[x];
+		var capId = capObj.getCapID();
+		var altCapId = aa.cap.getCapID(capId.getID1(), capId.getID2(), capId.getID3()).getOutput();
+		var capIDString = altCapId.getCustomID();
+		var myAppStat = capObj.getCapStatus();
+		var myCapDes = aa.cap.getCapWorkDesByPK(capId);
+		var workDescObj = myCapDes.getOutput();
+		var workDesc = workDescObj.getDescription().toUpperCase();
+		var myDummyPROX = workDesc;
+
+		if (myAppStat == "Closed") {  
+			var result = myDummyPROX.search(mySearchStr);
+			if (result == 0) {
+				DRIflag--;
+			}
+		}
+		if (myAppStat == null) {
+			var myDummyPROX = workDesc;
+			var result = myDummyPROX.search(mySearchStr);
+			if (result == 0) {
+				DRIflag++;
+			}
+		}
+	}
+
+	if (DRIflag >= 0) {
+		return true; 
+	} else {
+		return false; 
+	}
+}
